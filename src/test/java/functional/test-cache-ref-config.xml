@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><!-- 
+	File: test-cache-ref-config.xml
+	
+	Oracle Corporation makes no representations or warranties about 
+	the suitability of the software, either express or implied, 
+	including but not limited to the implied warranties of 
+	merchantability, fitness for a particular purpose, or 
+	non-infringement.  Oracle Corporation shall not be liable for 
+	any damages suffered by licensee as a result of using, modifying 
+	or distributing this software or its derivatives.
+
+	This notice may not be removed or altered.
+  -->
+<cache-config
+        xmlns="http://xmlns.oracle.com/coherence/coherence-cache-config"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://xmlns.oracle.com/coherence/coherence-cache-config coherence-cache-config.xsd">
+
+
+    <caching-scheme-mapping>
+        <cache-mapping>
+            <cache-name>dist-*</cache-name>
+            <scheme-name>distributed-scheme</scheme-name>
+        </cache-mapping>
+
+        <cache-mapping>
+            <cache-name>cqc-*</cache-name>
+            <scheme-name>cqc-scheme</scheme-name>
+            <init-params>
+                <init-param>
+                    <param-name>wrapped-cache</param-name>
+                    <param-value>dist-*</param-value>
+                </init-param>
+            </init-params>
+        </cache-mapping>
+    </caching-scheme-mapping>
+
+    <caching-schemes>
+
+        <distributed-scheme>
+            <scheme-name>distributed-scheme</scheme-name>
+            <service-name>DistributedService</service-name>
+            <backing-map-scheme>
+                <local-scheme/>
+            </backing-map-scheme>
+            <autostart>true</autostart>
+        </distributed-scheme>
+
+        <class-scheme>
+            <scheme-name>cqc-scheme</scheme-name>
+            <class-name>com.oracle.coherence.environment.extensible.WrapperContinuousQueryCache</class-name>
+            <init-params>
+                <init-param>
+                    <param-type>{cache-ref}</param-type>
+                    <param-value>{wrapped-cache}</param-value>
+                </init-param>
+                <init-param>
+                    <param-type>String</param-type>
+                    <param-value>{cache-name}</param-value>
+                </init-param>
+            </init-params>
+        </class-scheme>
+    </caching-schemes>
+</cache-config>

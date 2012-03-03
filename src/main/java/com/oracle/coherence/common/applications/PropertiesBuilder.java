@@ -1,0 +1,495 @@
+/*
+ * File: PropertiesBuilder.java
+ * 
+ * Copyright (c) 2011. All Rights Reserved. Oracle Corporation.
+ * 
+ * Oracle is a registered trademark of Oracle Corporation and/or its affiliates.
+ * 
+ * This software is the confidential and proprietary information of Oracle
+ * Corporation. You shall not disclose such confidential and proprietary
+ * information and shall use it only in accordance with the terms of the license
+ * agreement you entered into with Oracle Corporation.
+ * 
+ * Oracle Corporation makes no representations or warranties about the
+ * suitability of the software, either express or implied, including but not
+ * limited to the implied warranties of merchantability, fitness for a
+ * particular purpose, or non-infringement. Oracle Corporation shall not be
+ * liable for any damages suffered by licensee as a result of using, modifying
+ * or distributing this software or its derivatives.
+ * 
+ * This notice may not be removed or altered.
+ */
+package com.oracle.coherence.common.applications;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Properties;
+
+/**
+ * A {@link PropertiesBuilder} defines a set of property definitions that when realized may be used as
+ * a traditional {@link Map} of name value pair properties.
+ * <p>
+ * Unlike traditional {@link Map}-based implementations of properties, a {@link PropertiesBuilder} provides
+ * the ability to specify an {@link Iterator} for named properties that will in turn be used to acquire 
+ * actual property values when the said {@link PropertiesBuilder} is realized.
+ * <p>
+ * NOTE: This class is now deprecated.  As a replacement please use the com.oracle.coherence.common.runtime package
+ * for controlling application processes and coherence servers.
+ *
+ * @author Brian Oliver
+ */
+@Deprecated
+public class PropertiesBuilder
+{
+
+    /**
+     * The properties defined by the {@link PropertiesBuilder}.
+     */
+    private LinkedHashMap<String, Property> m_properties;
+
+
+    /**
+     * Standard Constructor (produces an empty {@link PropertiesBuilder}).
+     */
+    public PropertiesBuilder()
+    {
+        m_properties = new LinkedHashMap<String, Property>();
+    }
+
+
+    /**
+     * Standard Constructor. 
+     * <p>
+     * The provided properties are added as default values to the {@link PropertiesBuilder}.
+     * 
+     * @param properties The {@link Map} of properties to use as the basis for the {@link PropertiesBuilder}
+     */
+    public PropertiesBuilder(Map<String, String> properties)
+    {
+        this();
+
+        for (String name : properties.keySet())
+        {
+            m_properties.put(name, new Property(name, null, properties.get(name)));
+        }
+    }
+
+
+    /**
+     * Standard Constructor.
+     * <p>
+     * The provided properties are added as default values to the {@link PropertiesBuilder}.
+     * 
+     * @param properties The {@link Properties} to use as the basis for the {@link PropertiesBuilder}
+     */
+    public PropertiesBuilder(Properties properties)
+    {
+        this();
+
+        for (String key : properties.stringPropertyNames())
+        {
+            m_properties.put(key, new Property(key, null, properties.getProperty(key)));
+        }
+    }
+
+
+    /**
+     * Standard Copy Constructor.
+     * 
+     * @param propertiesBuilder The {@link PropertiesBuilder} on which to base the new {@link PropertiesBuilder}
+     */
+    public PropertiesBuilder(PropertiesBuilder propertiesBuilder)
+    {
+        this();
+
+        for (String name : propertiesBuilder.getPropertyNames())
+        {
+            m_properties.put(name, new Property(propertiesBuilder.m_properties.get(name)));
+        }
+    }
+
+
+    /**
+     * Sets the specified named property to use an {@link Iterator} to provide successive property values when
+     * the {@link PropertiesBuilder} is realized.
+     * 
+     * @param name     The name of the property.
+     * 
+     * @param iterator An iterator that will provide successive property values for the property 
+     *                 when the {@link PropertiesBuilder} is realized.
+     *                 
+     * @return The {@link PropertiesBuilder} to which the property was added so that further chained method calls, like
+     *         to other <code>setProperty(...)</code> methods on this class may be used. 
+     */
+    public PropertiesBuilder setProperty(String name,
+                                         Iterator<?> iterator)
+    {
+        if (containsProperty(name))
+        {
+            m_properties.get(name).setValue(iterator);
+        }
+        else
+        {
+            m_properties.put(name, new Property(name, iterator, null));
+        }
+
+        return this;
+    }
+
+
+    /**
+     * Sets the specified named default property to use an {@link Iterator} to provide successive property values when
+     * the {@link PropertiesBuilder} is realized.
+     * 
+     * @param name              The name of the property.
+     * 
+     * @param defaultIterator   The default {@link Iterator} that will provide successive property values for the 
+     *                          property when the {@link PropertiesBuilder} is realized.
+     *                 
+     * @return The {@link PropertiesBuilder} to which the property was added so that further chained method calls, like
+     *         to other <code>setProperty(...)</code> methods on this class may be used. 
+     */
+    public PropertiesBuilder setDefaultProperty(String name,
+                                                Iterator<?> defaultIterator)
+    {
+        if (containsProperty(name))
+        {
+            m_properties.get(name).setDefaultValue(defaultIterator);
+        }
+        else
+        {
+            m_properties.put(name, new Property(name, null, defaultIterator));
+        }
+
+        return this;
+    }
+
+
+    /**
+     * Sets the specified named property to have the specified value.
+     * 
+     * @param name      The name of the property
+     * @param value     The value of the property
+     *                 
+     * @return The {@link PropertiesBuilder} to which the property was added so that further chained method calls, like
+     *         to other <code>setProperty(...)</code> methods on this class may be used. 
+     */
+    public PropertiesBuilder setProperty(String name,
+                                         Object value)
+    {
+        if (containsProperty(name))
+        {
+            m_properties.get(name).setValue(value);
+        }
+        else
+        {
+            m_properties.put(name, new Property(name, value, null));
+        }
+
+        return this;
+    }
+
+
+    /**
+     * Sets the specified named default property to have the specified value.
+     * 
+     * @param name          The name of the property
+     * @param defaultValue  The default value of the property
+     *                 
+     * @return The {@link PropertiesBuilder} to which the property was added so that further chained method calls, like
+     *         to other <code>withProperty(...)</code> methods on this class may be used. 
+     */
+    public PropertiesBuilder setDefaultProperty(String name,
+                                                Object defaultValue)
+    {
+        if (containsProperty(name))
+        {
+            m_properties.get(name).setDefaultValue(defaultValue);
+        }
+        else
+        {
+            m_properties.put(name, new Property(name, null, defaultValue));
+        }
+
+        return this;
+    }
+
+
+    /**
+     * Adds and/or overrides the properties defined in the {@link PropertiesBuilder} with those from the specified
+     * {@link PropertiesBuilder}.
+     *  
+     * @param propertiesBuilder The {@link PropertiesBuilder} containing the properties to add to this {@link PropertiesBuilder}.
+     */
+    public void setProperties(PropertiesBuilder propertiesBuilder)
+    {
+        m_properties.putAll(propertiesBuilder.m_properties);
+    }
+
+
+    /**
+     * Adds and/or overrides the properties defined in the {@link PropertiesBuilder} with those from the specified
+     * {@link PropertiesBuilder}.
+     *  
+     * @param propertiesBuilder The {@link PropertiesBuilder} containing the properties to add to this {@link PropertiesBuilder}.
+     *                 
+     * @return The {@link PropertiesBuilder} to which the property was added so that further chained method calls, like
+     *         to other <code>withProperty(...)</code> methods on this class may be used. 
+     */
+    public PropertiesBuilder addProperties(PropertiesBuilder propertiesBuilder)
+    {
+        setProperties(propertiesBuilder);
+        return this;
+    }
+
+
+    /**
+     * Returns if the specified named property is defined by the {@link PropertiesBuilder}.
+     * 
+     * @param name  The name of the property
+     * 
+     * @return <code>true</code> if the property is defined by the {@link PropertiesBuilder}, <code>false</code> otherwise.
+     */
+    public boolean containsProperty(String name)
+    {
+        return m_properties.containsKey(name);
+    }
+
+
+    /**
+     * Returns the current value of the specified property.  If the property has a value specified, that value will
+     * be used.  If not the default value of the property will be used.  If the property is not known, <code>null</code>
+     * will be returned.
+     * 
+     * @param name The name of the property.
+     * 
+     * @return An {@link Object}
+     */
+    public Object getProperty(String name)
+    {
+        if (m_properties.containsKey(name))
+        {
+            Property property = m_properties.get(name);
+            return property.hasValue() ? property.getValue() : property.getDefaultValue();
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+
+    /**
+     * Removes the specified named property from the {@link PropertiesBuilder}.  If the specified property is not
+     * contained by the {@link PropertiesBuilder}, nothing happens.
+     * 
+     * @param name The name of the property to remove.
+     */
+    public void removeProperty(String name)
+    {
+        m_properties.remove(name);
+    }
+
+
+    /**
+     * Clears all of the currently defined properties from the {@link PropertiesBuilder}.
+     */
+    public void clear()
+    {
+        m_properties.clear();
+    }
+
+
+    /**
+     * Returns an {@link Iterable} over the property names defined by the {@link PropertiesBuilder}.
+     * 
+     * @return {@link Iterable}
+     */
+    public Iterable<String> getPropertyNames()
+    {
+        return m_properties.keySet();
+    }
+
+
+    /**
+     * Creates a new {@link Properties} instance containing name, value pairs defined by the {@link PropertiesBuilder}. 
+     * If a property with in the {@link PropertiesBuilder} is defined as an {@link Iterator}, the next value from the 
+     * said {@link Iterator} is used as a value for the property.
+     * 
+     * @param defaultPropertiesBuilder (optional may be <code>null</code>) This {@link PropertiesBuilder} may be 
+     *                              specified to provide an inherited/default/base set of initial properties for the 
+     *                              resulting {@link Map}.  These initial properties are then overriden by those 
+     *                              specified in the current {@link PropertiesBuilder} prior to the {@link Map} 
+     *                              being returned. 
+     * 
+     * @return A new {@link Properties} instance as defined by the {@link PropertiesBuilder}
+     */
+    public Properties realize(PropertiesBuilder defaultPropertiesBuilder)
+    {
+        Properties properties = new Properties();
+
+        //add all of the default properties first
+        if (defaultPropertiesBuilder != null)
+        {
+            properties.putAll(defaultPropertiesBuilder.realize(null));
+        }
+
+        for (String name : getPropertyNames())
+        {
+            Object value = getProperty(name);
+
+            if (value != null)
+            {
+                if (value instanceof Iterator<?>)
+                {
+                    Iterator<?> iterator = (Iterator<?>) value;
+                    if (iterator.hasNext())
+                    {
+                        properties.put(name, iterator.next().toString());
+                    }
+                    else
+                    {
+                        throw new IndexOutOfBoundsException(String.format(
+                            "No more values available for the property [%s]", name));
+                    }
+                }
+                else
+                {
+                    properties.put(name, value.toString());
+                }
+            }
+        }
+
+        return properties;
+    }
+
+
+    /**
+     * Creates a new {@link Properties} instance containing name, value pairs defined by the {@link PropertiesBuilder}. 
+     * If a property with in the {@link PropertiesBuilder} is defined as an {@link Iterator}, the next value from the 
+     * said {@link Iterator} is used as a value for the property.
+     * 
+     * @return A new {@link Properties} instance as defined by the {@link PropertiesBuilder}
+     */
+    public Properties realize()
+    {
+        return realize(null);
+    }
+
+
+    /**
+     * Constructs a {@link PropertiesBuilder} using the properties defined in the specified Java properties file.
+     * 
+     * @param fileName The name of the file (including path if required) from which to load the properties
+     * 
+     * @return A {@link PropertiesBuilder}
+     * 
+     * @throws IOException Should a problem occur while loading the properties
+     */
+    public static PropertiesBuilder fromPropertiesFile(String fileName) throws IOException
+    {
+        Properties properties = new Properties();
+        URL url = ClassLoader.getSystemResource(fileName);
+        properties.load(url.openStream());
+
+        return new PropertiesBuilder(properties);
+    }
+
+
+    /**
+     * Constructs a {@link PropertiesBuilder} using the environment variables of the currently executing process.
+     * 
+     * @return A {@link PropertiesBuilder}
+     */
+    public static PropertiesBuilder fromCurrentEnvironmentVariables()
+    {
+        return new PropertiesBuilder(System.getenv());
+    }
+
+
+    /**
+     * Constructs a {@link PropertiesBuilder} using the current system properties the currently executing process.
+     * 
+     * @return A {@link PropertiesBuilder}
+     */
+    public static PropertiesBuilder fromCurrentSystemProperties()
+    {
+        return new PropertiesBuilder(System.getProperties());
+    }
+
+
+    /**
+     * A {@link Property} represents the defined value (with possible a default) for a specified named property.
+     */
+    private static class Property
+    {
+
+        private String name;
+        private Object value;
+        private Object defaultValue;
+
+
+        public Property(String name,
+                        Object value,
+                        Object defaultValue)
+        {
+            this.name = name;
+            this.value = value;
+            this.defaultValue = defaultValue;
+        }
+
+
+        public Property(Property property)
+        {
+            this.name = property.getName();
+            this.value = property.getValue();
+            this.defaultValue = property.getDefaultValue();
+        }
+
+
+        public String getName()
+        {
+            return name;
+        }
+
+
+        public Object getValue()
+        {
+            return value;
+        }
+
+
+        public void setValue(Object value)
+        {
+            this.value = value;
+        }
+
+
+        public boolean hasValue()
+        {
+            return value != null;
+        }
+
+
+        public Object getDefaultValue()
+        {
+            return defaultValue;
+        }
+
+
+        public void setDefaultValue(Object defaultValue)
+        {
+            this.defaultValue = defaultValue;
+        }
+
+
+        @Override
+        public String toString()
+        {
+            return String.format("{name=%s, value=%s, defaultValue=%s}", name, value, defaultValue);
+        }
+    }
+}

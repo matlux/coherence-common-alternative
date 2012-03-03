@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+	File: ivy.xml
+
+	Copyright (c) 2012. All Rights Reserved. Oracle Corporation.
+
+	Oracle is a registered trademark of Oracle Corporation and/or its
+	affiliates.
+
+	This software is the confidential and proprietary information of Oracle
+	Corporation. You shall not disclose such confidential and proprietary
+	information and shall use it only in accordance with the terms of the
+	license agreement you entered into with Oracle Corporation.
+ 
+	Oracle Corporation makes no representations or warranties about 
+	the suitability of the software, either express or implied, 
+	including but not limited to the implied warranties of 
+	merchantability, fitness for a particular purpose, or 
+	non-infringement.  Oracle Corporation shall not be liable for 
+	any damages suffered by licensee as a result of using, modifying 
+	or distributing this software or its derivatives.
+
+	This notice may not be removed or altered.
+ -->
+<ivy-module version="2.0" 
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+            xsi:noNamespaceSchemaLocation="http://ant.apache.org/ivy/schemas/ivy.xsd">                
+                   
+    <info organisation="oracle" 
+		  module="coherence-common" 
+		  revision="2.1.2.${build.number}"/>
+	
+	<configurations defaultconfmapping="default">
+        <conf name="module" visibility="public" 
+              description="the module without dependencies" />
+              
+        <conf name="runtime" extends="module" visibility="public" 
+              description="the dependencies required for using the module at runtime" />
+          
+        <conf name="runtime-with-ec2addressprovider" extends="runtime" visibility="public" 
+              description="the dependencies required for using the module at runtime with the EC2AddressProvider" />
+              
+        <conf name="source" extends="module" visibility="public" 
+              description="the dependencies required for using the module source code" />
+              
+        <conf name="test" extends="runtime" visibility="private" 
+              description="the dependencies required for testing the module" />
+        
+        <conf name="default" extends="runtime" visibility="public" 
+              description="the default configuration dependencies for the module" />
+    </configurations>
+	
+	<publications>
+		<artifact name="coherence-common" type="jar" ext="jar" conf="module,runtime,default"/>
+		<artifact name="coherence-common" type="src" ext="zip" conf="source"/>
+	</publications>
+		
+	<dependencies>
+        <dependency org="oracle" name="coherence" rev="${coherence.revision}" conf="runtime,test->default" changing="true"/>
+        
+        <dependency org="junit" name="junit" rev="4.+" conf="test->default" />
+        
+        <dependency org="org.mockito" name="mockito-all" rev="1.8.5+" conf="test->default" />
+        
+        <dependency org="com.amazonaws" name="aws-java-sdk" rev="1.0.003" conf ="runtime-with-ec2addressprovider,test->default" />
+	</dependencies>
+</ivy-module>
