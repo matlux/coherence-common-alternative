@@ -25,6 +25,8 @@ package com.oracle.coherence.common.runtime;
 import com.oracle.coherence.common.resourcing.AbstractDeferredResourceProvider;
 import com.oracle.coherence.common.resourcing.ResourceProvider;
 import com.oracle.coherence.common.resourcing.ResourceUnavailableException;
+import com.oracle.coherence.common.runtime.process.InternalProcess;
+import com.tangosol.util.Base;
 
 import java.io.IOException;
 
@@ -34,11 +36,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.management.AttributeNotFoundException;
+import javax.management.InstanceNotFoundException;
 import javax.management.JMX;
+import javax.management.MBeanException;
 import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
+import javax.management.ReflectionException;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
@@ -160,6 +166,8 @@ public class JavaConsoleApplication extends AbstractApplication implements JavaA
             // attempt to connect to the configured JMX MBeanServer
             try
             {
+                System.setProperty("java.rmi.server.useCodebaseOnly", "true");
+
                 // construct an appropriate URL
                 final String remoteJMXConnectionUrl = String.format("service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi",
                                                                     getRMIServerHostName(),
@@ -301,6 +309,65 @@ public class JavaConsoleApplication extends AbstractApplication implements JavaA
         return getMBeanInfo(objectName, 60000);
     }
 
+    public <T> T getAttribute(ObjectName objectName, String attributeName) {
+        return getAttribute(objectName, attributeName, 60000);
+    }
+
+    @SuppressWarnings({"unchecked"})
+    public <T> T getAttribute(ObjectName objectName, String attributeName, long waitTimeMS) {
+        getMBeanInfo(objectName, waitTimeMS);
+        try {
+            Object attribute = getMBeanServerConnection().getAttribute(objectName, attributeName);
+            return (T) attribute;
+        } catch (Exception e) {
+            throw new RuntimeException("Could not get MBean Attribute " + attributeName + " for object " + objectName);
+        }
+    }
+
+    public void waitForAttribute(ObjectName objectName, String attributeName, Object value)
+    {
+        waitForAttribute(objectName, attributeName, value, 60000);
+    }
+
+    public void waitForAttribute(final ObjectName objectName, final String attributeName,
+                                  final Object value, final long waitTimeMS)
+    {
+        try
+        {
+            ResourceProvider<Object> mBeanAttributeWaiter =
+                new AbstractDeferredResourceProvider<Object>(objectName.toString(),
+                                                                200,
+                                                                waitTimeMS)
+            {
+                @Override
+                protected Object ensureResource() throws ResourceUnavailableException
+                {
+                    try
+                    {
+                        Object actual = getAttribute(objectName, attributeName);
+                        if (!Base.equals(actual, value)) {
+                            actual = null;
+                        }
+                        return actual;
+                    }
+                    catch (Exception e)
+                    {
+                        throw new RuntimeException(e);
+                    }
+                }
+            };
+
+            mBeanAttributeWaiter.getResource();
+        }
+        catch (ResourceUnavailableException e)
+        {
+            throw e;
+        }
+        catch (Exception e)
+        {
+            throw new UnsupportedOperationException("Failed to retrieve specified MBean [" + objectName + "]", e);
+        }
+    }
 
     /**
      * {@inheritDoc}
@@ -324,4 +391,18 @@ public class JavaConsoleApplication extends AbstractApplication implements JavaA
 
         super.destroy();
     }
+
+    @SuppressWarnings({"unchecked"})
+    public <T> T invoke(String className, String methodName)
+    {
+        Process process = getProcess();
+        if (!(process instanceof InternalProcess))
+        {
+            throw new UnsupportedOperationException("Invoke is only available for Internal Processes");
+        }
+
+        return (T) ((InternalProcess)process).invoke(className, methodName);
+    }
+
+
 }

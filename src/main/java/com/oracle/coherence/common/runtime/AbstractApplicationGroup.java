@@ -22,8 +22,8 @@
 
 package com.oracle.coherence.common.runtime;
 
-import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 /**
@@ -38,7 +38,7 @@ public abstract class AbstractApplicationGroup<A extends Application> implements
     /**
      * The collection of {@link Application}s that belong to the {@link ApplicationGroup}.
      */
-    protected ArrayList<A> m_applications;
+    protected LinkedHashMap<String,A> m_applications;
 
 
     /**
@@ -48,9 +48,25 @@ public abstract class AbstractApplicationGroup<A extends Application> implements
      */
     public AbstractApplicationGroup(List<A> applications)
     {
-        m_applications = new ArrayList<A>(applications);
+        m_applications = new LinkedHashMap<String,A>();
+        for (A application : applications)
+        {
+            m_applications.put(application.getName(), application);
+        }
     }
 
+    /**
+     * Returns the application in this group with the given name or null
+     * if no application has been realized with the given name.
+     * @param name - the name of the application to get
+     *
+     * @return the application in this group with the given name or null
+     * if no application has been realized with the given name.
+     */
+    public A getApplication(String name)
+    {
+        return m_applications.get(name);
+    }
 
     /**
      * {@inheritDoc}
@@ -58,7 +74,7 @@ public abstract class AbstractApplicationGroup<A extends Application> implements
     @Override
     public Iterator<A> iterator()
     {
-        return m_applications.iterator();
+        return m_applications.values().iterator();
     }
 
 
@@ -68,7 +84,7 @@ public abstract class AbstractApplicationGroup<A extends Application> implements
     @Override
     public void destroy()
     {
-        for (A application : m_applications)
+        for (A application : m_applications.values())
         {
             if (application != null)
             {

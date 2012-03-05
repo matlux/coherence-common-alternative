@@ -22,6 +22,7 @@
 
 package com.oracle.coherence.common.runtime;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -34,11 +35,28 @@ import java.util.List;
 public abstract class AbstractApplicationSchema<A extends Application, S extends ApplicationSchema<A, S>>
     implements ApplicationSchema<A, S>
 {
+
+    /**
+     * The name of the executable that will be run
+     */
+    private String m_executableName;
+
+    /**
+     * The working directory for the process
+     */
+    private File m_workingDirectory;
+
     /**
      * The {@link PropertiesBuilder} containing the environment variables to be used when realizing
      * the {@link Application}.
      */
     private PropertiesBuilder m_propertiesBuilder;
+
+    /**
+     * Flag to indicate whether the environment from the current process
+     * is kept for the child processes
+     */
+    private boolean cloneEnvironment = false;
 
     /**
      * The arguments for the {@link Application}.
@@ -49,12 +67,40 @@ public abstract class AbstractApplicationSchema<A extends Application, S extends
     /**
      * Construct an {@link AbstractApplicationSchema}.
      */
-    public AbstractApplicationSchema()
+    public AbstractApplicationSchema(String executableName)
     {
+        m_executableName = executableName;
         m_propertiesBuilder    = new PropertiesBuilder();
         m_applicationArguments = new ArrayList<String>();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public String getExecutableName() {
+        return m_executableName;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public File getWorkingDirectory() {
+        return m_workingDirectory;
+    }
+
+    /**
+     * Set the working directory to start the process in
+     *
+     * @param workingDirectory the working directory to use
+     *
+     * @return The {@link ApplicationSchema} (so that we can perform method chaining).
+     */
+    @SuppressWarnings({"unchecked"})
+    public S setWorkingDirectory(File workingDirectory) {
+        this.m_workingDirectory = workingDirectory;
+
+        return (S) this;
+    }
 
     /**
      * {@inheritDoc}
@@ -133,6 +179,20 @@ public abstract class AbstractApplicationSchema<A extends Application, S extends
         return (S) this;
     }
 
+    @SuppressWarnings({"unchecked"})
+    public S cloneEnvironmentVariables(boolean cloneEnvironment)
+    {
+        this.cloneEnvironment = cloneEnvironment;
+        return (S) this;
+    }
+
+    /**
+     * @return true if the current processes environment variables
+     * should be used as a base for the new process' environment variables
+     */
+    public boolean shouldCloneEnvironment() {
+        return cloneEnvironment;
+    }
 
     /**
      * Adds an argument to use when starting the {@link Application}.

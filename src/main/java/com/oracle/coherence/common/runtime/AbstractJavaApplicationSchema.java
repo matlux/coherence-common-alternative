@@ -24,6 +24,7 @@ package com.oracle.coherence.common.runtime;
 
 import com.oracle.coherence.common.network.AvailablePortIterator;
 import com.oracle.coherence.common.network.Constants;
+import com.oracle.coherence.common.runtime.process.MBeanServerLocator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -86,6 +87,21 @@ public abstract class AbstractJavaApplicationSchema<A extends JavaApplication, S
      */
     private PropertiesBuilder m_systemPropertiesBuilder;
 
+    /**
+     * Flag to indicate whether this {@link JavaApplication} runs out of process via {@link ProcessBuilder}
+     * or in process via an isolated ClassLoader.
+     */
+    private boolean runOutOfProcess = true;
+
+    /**
+     * If running In-Process this is the method that will be called on the class to start the pseudo-process
+     */
+    private String startMethod;
+
+    /**
+     * If running In-Process this is the method that will be called on the class to stop the pseudo-process
+     */
+    private String stopMethod;
 
     /**
      * Construct a {@link JavaApplicationSchema} with a given application class name,
@@ -95,12 +111,12 @@ public abstract class AbstractJavaApplicationSchema<A extends JavaApplication, S
      */
     public AbstractJavaApplicationSchema(String applicationClassName)
     {
-        this(applicationClassName, System.getProperty("java.class.path"));
+        this("java", applicationClassName, System.getProperty("java.class.path"));
     }
 
-
     /**
-     * Construct a {@link JavaApplicationSchema}.
+     * Construct a {@link JavaApplicationSchema} with a given application class name,
+     * but using the class path of the executing application.
      *
      * @param applicationClassName  The fully qualified class name of the Java application.
      * @param classPath             The class path for the Java application.
@@ -108,6 +124,20 @@ public abstract class AbstractJavaApplicationSchema<A extends JavaApplication, S
     public AbstractJavaApplicationSchema(String applicationClassName,
                                          String classPath)
     {
+        this("java", applicationClassName, classPath);
+    }
+
+    /**
+     * Construct a {@link JavaApplicationSchema}.
+     *
+     * @param executableName        The executable name to run
+     * @param applicationClassName  The fully qualified class name of the Java application.
+     * @param classPath             The class path for the Java application.
+     */
+    public AbstractJavaApplicationSchema(String executableName, String applicationClassName,
+                                         String classPath)
+    {
+        super(executableName);
         this.m_applicationClassName    = applicationClassName;
         this.m_classPath               = classPath;
         this.m_jvmOptions              = new ArrayList<String>();
@@ -370,4 +400,75 @@ public abstract class AbstractJavaApplicationSchema<A extends JavaApplication, S
 
         return (S) this;
     }
+
+    private void setupJMXServer() {
+        PropertiesBuilder props = getSystemPropertiesBuilder();
+        boolean jmxEnabled = props.containsProperty(SUN_MANAGEMENT_JMXREMOTE);
+        if (jmxEnabled && !isRunOutOfProcess()) {
+            setDefaultSystemProperty("tangosol.coherence.management.serverfactory", MBeanServerLocator.class.getCanonicalName());
+        } else {
+            props.removeProperty("tangosol.coherence.management.serverfactory");
+        }
+    }
+
+    /**
+     * This Application will run out of process in a forked JVM
+     *
+     * @return The {@link JavaApplication}.
+     */
+    @SuppressWarnings("unchecked")
+    public S runOutOfProcess() {
+        runOutOfProcess = true;
+        setupJMXServer();
+
+        return (S) this;
+    }
+
+    /**
+     * This Application will run in-process in an isolated ClassLoader. The start method
+     * should not block as the runner will not be able to return after calling it. For
+     * example if the main class was {@link com.tangosol.net.DefaultCacheServer} we could
+     * not use the main() method for the start method as this would not return, we would
+     * have to use the startDaemon() method instead as this returns after initialising
+     * the DefaultCacheServer.
+     *
+     * @param startMethod the method to call on the application class to start the process
+     * @param stopMethod the method to call on the application class to stop the process
+     *
+     * @return This schema.
+     */
+    @SuppressWarnings("unchecked")
+    public S runInProcess(String startMethod, String stopMethod) {
+        this.runOutOfProcess = false;
+        this.startMethod = startMethod;
+        this.stopMethod = stopMethod;
+        setupJMXServer();
+
+        return (S) this;
+    }
+
+    /**
+     * @return If this schema describes an in-process application then returns the method
+     * to call to start the process, otherwise returns null.
+     */
+    public String getStartMethod() {
+        return startMethod;
+    }
+
+    /**
+     * @return If this schema describes an in-process application then returns the method
+     * to call to stop the process, otherwise returns null.
+     */
+    public String getStopMethod() {
+        return stopMethod;
+    }
+
+    /**
+     * @return true if this builder builds an out of process application, false
+     * if it builds an in-process application
+     */
+    public boolean isRunOutOfProcess() {
+        return runOutOfProcess;
+    }
+
 }

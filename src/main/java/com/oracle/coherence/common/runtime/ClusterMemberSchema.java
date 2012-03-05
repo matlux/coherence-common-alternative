@@ -424,4 +424,14 @@ public class ClusterMemberSchema extends AbstractJavaApplicationSchema<ClusterMe
     {
         return setSystemProperty(PROPERTY_WELL_KNOWN_ADDRESS, address);
     }
+
+    /**
+     * This Application will run in-process in an isolated ClassLoader
+     *
+     * @return This {@link ClusterMemberSchema}.
+     */
+    public ClusterMemberSchema runInProcess() {
+        return super.runInProcess("startDaemon", "shutdown");
+    }
+
 }

@@ -23,15 +23,11 @@
 package com.oracle.coherence.common.runtime;
 
 import com.oracle.coherence.common.network.AvailablePortIterator;
-
 import com.oracle.coherence.common.resourcing.AbstractDeferredResourceProvider;
 import com.oracle.coherence.common.resourcing.ResourceProvider;
 import com.oracle.coherence.common.resourcing.ResourceUnavailableException;
-
 import com.oracle.coherence.common.runtime.ClusterMemberSchema.JMXManagementMode;
-
 import junit.framework.Assert;
-
 import org.junit.Test;
 
 /**

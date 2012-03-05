@@ -1,0 +1,89 @@
+<!-- 
+    File: build.xml
+
+    Copyright (c) 2010. All Rights Reserved. Oracle Corporation.
+
+    Oracle is a registered trademark of Oracle Corporation and/or its
+    affiliates.
+
+    This software is the confidential and proprietary information of Oracle
+    Corporation. You shall not disclose such confidential and proprietary
+    information and shall use it only in accordance with the terms of the
+    license agreement you entered into with Oracle Corporation.
+ 
+    Oracle Corporation makes no representations or warranties about 
+    the suitability of the software, either express or implied, 
+    including but not limited to the implied warranties of 
+    merchantability, fitness for a particular purpose, or 
+    non-infringement.  Oracle Corporation shall not be liable for 
+    any damages suffered by licensee as a result of using, modifying 
+    or distributing this software or its derivatives.
+
+    This notice may not be removed or altered.
+ -->
+
+<project name="coherence-common-2.1.2.31472" default="package" basedir=".">
+    <target name="properties">
+        <!-- define the location of the source code -->
+        <property name="src" location="src" />
+        <property name="test.src" location="test" />
+        <property name="build" location="build" />
+        <property name="java-dependencies" location="../dependencies" />
+
+        <!-- define the temporary build and packaging locations -->
+        <property name="package" location="${build}" />
+        <property name="package.classes.core" location="${package}/classes/core" />
+        <property name="package.classes.test" location="${package}/classes/test" />
+    </target>
+    
+    <target name="dependencies" depends="properties">
+        <path id="build.classpath">
+            <pathelement path="${java.class.path}/" />
+            <fileset dir="${java-dependencies}" />
+        </path>
+        <path id="test.classpath">
+            <path refid="build.classpath"/>
+            <pathelement path="${package.classes.core}"/>
+        </path>
+    </target>
+    
+    <target name="clean" depends="properties">
+        <delete dir="${package}" />
+        <mkdir dir="${package}" />
+        <mkdir dir="${package.classes.core}" />
+        <mkdir dir="${package.classes.test}" />
+    </target>
+    
+    <target name="compile" depends="clean, dependencies">
+        <javac verbose="off" srcdir="${src}" destdir="${package.classes.core}" classpathref="build.classpath"
+               debug="on" source="1.5" >
+        </javac>
+    </target>
+    
+    <target name="compile.tests" depends="clean, dependencies, compile">
+        <javac verbose="off" srcdir="${test.src}" destdir="${package.classes.test}" classpathref="test.classpath"
+            debug="on" source="1.5" />
+    </target>
+
+    <target name="package" depends="compile">
+        <copy todir="${package.classes.core}" preservelastmodified="true">
+            <fileset dir="${src}">
+                <include name="**/*.properties" />
+                <include name="**/*.handlers" />
+                <include name="**/*.schemas" />
+                <include name="**/*.xml" />
+                <include name="**/*.dtd" />
+                <include name="**/*.xsd" />
+                <include name="**/*.gif" />
+                <include name="**/*.png" />
+                <include name="**/*.jpg" />
+                <include name="**/*.txt" />
+            </fileset>
+        </copy>
+        <jar destfile="${package}/${ant.project.name}.jar" basedir="${package.classes.core}">
+            <manifest>
+                <attribute name="Copyright" value="Copyright Oracle Corporation. All Rights Reserved" />
+            </manifest>
+        </jar>
+    </target>
+</project>

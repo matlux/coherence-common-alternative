@@ -56,4 +56,32 @@ public interface Application
      * {@link Application} is no longer running.
      */
     public void destroy();
+
+    /**
+     * causes the current thread to wait, if necessary, until the
+     * process represented by this <code>Process</code> object has
+     * terminated. This method returns
+     * immediately if the subprocess has already terminated. If the
+     * subprocess has not yet terminated, the calling thread will be
+     * blocked until the subprocess exits.
+     *
+     * @return     the exit value of the process. By convention,
+     *             <code>0</code> indicates normal termination.
+     * @exception  InterruptedException  if the current thread is
+     *             {@linkplain Thread#interrupt() interrupted} by another
+     *             thread while it is waiting, then the wait is ended and
+     *             an {@link InterruptedException} is thrown.
+     */
+    public int waitFor() throws InterruptedException;
+
+    /**
+     * Returns the exit value for the subprocess.
+     *
+     * @return  the exit value of the subprocess represented by this
+     *          <code>Process</code> object. by convention, the value
+     *          <code>0</code> indicates normal termination.
+     * @exception  IllegalThreadStateException  if the subprocess represented
+     *             by this <code>Process</code> object has not yet terminated.
+     */
+    public int exitValue();
 }

@@ -63,4 +63,22 @@ public interface JavaApplicationSchema<A extends JavaApplication, S extends Java
      * @return {@link String}
      */
     public String getApplicationClassName();
+
+    /**
+     * @return true if this builder builds an out of process application, false
+     * if it builds an in-process application
+     */
+    public boolean isRunOutOfProcess();
+
+    /**
+     * @return If this schema describes an in-process application then returns the method
+     * to call to start the process, otherwise returns null.
+     */
+    public String getStartMethod();
+
+    /**
+     * @return If this schema describes an in-process application then returns the method
+     * to call to stop the process, otherwise returns null.
+     */
+    public String getStopMethod();
 }

@@ -22,6 +22,7 @@
 
 package com.oracle.coherence.common.runtime;
 
+import java.io.File;
 import java.util.List;
 
 /**
@@ -40,6 +41,16 @@ import java.util.List;
 public interface ApplicationSchema<A extends Application, S extends ApplicationSchema<A, S>>
 {
     /**
+     * @return the name of the executable to run
+     */
+    public String getExecutableName();
+
+    /**
+     * @return the working directory to run the process in
+     */
+    public File getWorkingDirectory();
+
+    /**
      * Obtains the {@link PropertiesBuilder} that will be used to determine operating system environment
      * variables to be provided to the {@link Application}.
      *
@@ -47,6 +58,11 @@ public interface ApplicationSchema<A extends Application, S extends ApplicationS
      */
     public PropertiesBuilder getEnvironmentVariablesBuilder();
 
+    /**
+     * @return true if the current processes environment variables
+     * should be used as a base for the new process' environment variables
+     */
+    public boolean shouldCloneEnvironment();
 
     /**
      * Obtains the arguments for the {@link Application}.

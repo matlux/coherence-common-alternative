@@ -22,9 +22,12 @@
 
 package com.oracle.coherence.common.runtime;
 
+import com.oracle.coherence.common.runtime.process.InternalProcess;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 
 import java.lang.management.ManagementFactory;
@@ -64,9 +67,14 @@ public abstract class AbstractApplication implements Application
     private Properties m_environmentVariables;
 
     /**
-     * The {@link Thread} that is used to capture output from the underlying {@link Process}.
+     * The {@link Thread} that is used to capture standard output from the underlying {@link Process}.
      */
-    private Thread m_thread;
+    private Thread m_outThread;
+
+    /**
+     * The {@link Thread} that is used to capture standard error from the underlying {@link Process}.
+     */
+    private Thread m_errThread;
 
     /**
      * The os process id this abstract application represents
@@ -93,49 +101,15 @@ public abstract class AbstractApplication implements Application
         m_environmentVariables = environmentVariables;
         m_pid                  = determinePID(process);
 
-        // start a thread to capture the output and redirect it to the console
-        this.m_thread = new Thread(new Runnable()
-        {
-            public void run()
-            {
-                long lineNumber = 1;
+        //start a thread to capture standard out and redirect it to the console
+        this.m_outThread = new Thread(new OutputCaptor("out", AbstractApplication.this.m_process.getInputStream()));
+        m_outThread.setDaemon(true);
+        m_outThread.start();
 
-                try
-                {
-                    BufferedReader reader =
-                        new BufferedReader(new InputStreamReader(new BufferedInputStream(AbstractApplication.this
-                            .m_process.getInputStream())));
-
-                    while (true)
-                    {
-                        String line = reader.readLine();
-
-                        if (line == null)
-                        {
-                            break;
-                        }
-
-                        AbstractApplication.this.m_console.printf("[%s%s] %4d: %s\n",
-                                                                  AbstractApplication.this.m_name,
-                                                                  m_pid < 0 ? "" : ":" + m_pid,
-                                                                  lineNumber++,
-                                                                  line);
-                    }
-                }
-                catch (Exception exception)
-                {
-                    // deliberately empty as we safely assume exceptions are always due to process termination.
-                }
-
-                AbstractApplication.this.m_console.printf("[%s%s] %4d: (terminated)\n",
-                                                          AbstractApplication.this.m_name,
-                                                          m_pid < 0 ? "" : ":" + m_pid,
-                                                          lineNumber++);
-            }
-        });
-
-        m_thread.setDaemon(true);
-        m_thread.start();
+        //start a thread to capture standard err and redirect it to the console
+        this.m_errThread = new Thread(new OutputCaptor("err", AbstractApplication.this.m_process.getErrorStream()));
+        m_errThread.setDaemon(true);
+        m_errThread.start();
     }
 
 
@@ -165,8 +139,11 @@ public abstract class AbstractApplication implements Application
     @Override
     public void destroy()
     {
-        // terminate the ioThread that is reading from the process
-        m_thread.interrupt();
+        // terminate the ioThread that is reading from the process standard out
+        m_outThread.interrupt();
+
+        // terminate the ioThread that is reading from the process standard err
+        m_errThread.interrupt();
 
         // close the io streams being used by the process
         try
@@ -222,6 +199,43 @@ public abstract class AbstractApplication implements Application
         return m_pid;
     }
 
+    protected Process getProcess() {
+        return m_process;
+    }
+
+    /**
+     * causes the current thread to wait, if necessary, until the
+     * process represented by this <code>Process</code> object has
+     * terminated. This method returns
+     * immediately if the subprocess has already terminated. If the
+     * subprocess has not yet terminated, the calling thread will be
+     * blocked until the subprocess exits.
+     *
+     * @return     the exit value of the process. By convention,
+     *             <code>0</code> indicates normal termination.
+     * @exception  InterruptedException  if the current thread is
+     *             {@linkplain Thread#interrupt() interrupted} by another
+     *             thread while it is waiting, then the wait is ended and
+     *             an {@link InterruptedException} is thrown.
+     */
+    public int waitFor() throws InterruptedException
+    {
+        return this.m_process.waitFor();
+    }
+
+    /**
+     * Returns the exit value for the subprocess.
+     *
+     * @return  the exit value of the subprocess represented by this
+     *          <code>Process</code> object. by convention, the value
+     *          <code>0</code> indicates normal termination.
+     * @exception  IllegalThreadStateException  if the subprocess represented
+     *             by this <code>Process</code> object has not yet terminated.
+     */
+    public int exitValue()
+    {
+        return m_process.exitValue();
+    }
 
     /**
      * Determine the {@link Process} id for the {@link Application}
@@ -237,8 +251,13 @@ public abstract class AbstractApplication implements Application
 
         try
         {
+            // Internal process
+            if (p instanceof InternalProcess) {
+                pid = -1;
+            }
+
             // Unix variants incl. OSX
-            if (p.getClass().getSimpleName().equals("UNIXProcess"))
+            else if (p.getClass().getSimpleName().equals("UNIXProcess"))
             {
                 final Class<?> clazz = p.getClass();
                 final Field    pidF  = clazz.getDeclaredField("pid");
@@ -287,4 +306,49 @@ public abstract class AbstractApplication implements Application
 
         return pid;
     }
+
+    private class OutputCaptor implements Runnable
+    {
+        private String m_type;
+        private InputStream m_stream;
+
+        private OutputCaptor(String type, InputStream stream)
+        {
+            this.m_type = type;
+            this.m_stream = stream;
+        }
+
+        public void run()
+        {
+            long lineNumber = 1;
+
+            try
+            {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(new BufferedInputStream(m_stream)));
+                while (true)
+                {
+                    String line = reader.readLine();
+                    if (line == null)
+                        break;
+                    AbstractApplication.this.m_console.printf("[%s:%s%s] %4d: %s\n",
+                                                              AbstractApplication.this.m_name,
+                                                              m_type,
+                                                              m_pid < 0 ? "" : ":" + m_pid,
+                                                              lineNumber++,
+                                                              line);
+                }
+            }
+            catch (Exception exception)
+            {
+                //deliberately empty as we safely assume exceptions
+                //are always due to process termination.
+            }
+
+            AbstractApplication.this.m_console.printf("[%s:%s%s] %4d: (terminated)\n",
+                    AbstractApplication.this.m_name, m_type,
+                    m_pid < 0 ? "" : ":" + m_pid,
+                    lineNumber);
+        }
+    }
+
 }

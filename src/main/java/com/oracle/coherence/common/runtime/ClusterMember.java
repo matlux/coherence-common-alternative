@@ -25,8 +25,11 @@ package com.oracle.coherence.common.runtime;
 import com.oracle.coherence.common.resourcing.ResourceUnavailableException;
 
 import java.util.Properties;
+import java.util.Set;
 
 import javax.management.MBeanInfo;
+import javax.management.MBeanServerConnection;
+import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 
 /**
@@ -90,8 +93,7 @@ public class ClusterMember extends JavaConsoleApplication
     {
         try
         {
-            return (Integer) getMBeanServerConnection().getAttribute(new ObjectName("Coherence:type=Cluster"),
-                                                                     "ClusterSize");
+            return (Integer) getAttribute(new ObjectName("Coherence:type=Cluster"), "ClusterSize");
         }
         catch (Exception e)
         {
@@ -99,6 +101,16 @@ public class ClusterMember extends JavaConsoleApplication
         }
     }
 
+    public void waitForClusterSize(int size) {
+        try
+        {
+            waitForAttribute(new ObjectName("Coherence:type=Cluster"), "ClusterSize", size);
+        }
+        catch (Exception e)
+        {
+            throw new UnsupportedOperationException("Error waiting for cluster size", e);
+        }
+    }
 
     /**
      * Obtains the Coherence Service {@link MBeanInfo} for the {@link ClusterMember}.

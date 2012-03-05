@@ -144,4 +144,14 @@ public interface JavaApplication extends Application
      */
     public MBeanInfo getMBeanInfo(ObjectName objectName,
                                   long waitTimeMS);
+
+    public <T> T getAttribute(ObjectName objectName, String attributeName);
+
+    public <T> T getAttribute(ObjectName objectName, String attributeName, long waitTimeMS);
+
+    public void waitForAttribute(ObjectName objectName, String attributeName, Object value);
+
+    public void waitForAttribute(final ObjectName objectName, final String attributeName,
+                                  final Object value, final long waitTimeMS);
+
 }

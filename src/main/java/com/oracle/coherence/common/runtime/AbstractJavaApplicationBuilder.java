@@ -25,9 +25,13 @@ package com.oracle.coherence.common.runtime;
 import com.oracle.coherence.common.events.lifecycle.LifecycleEvent;
 import com.oracle.coherence.common.events.lifecycle.LifecycleStartedEvent;
 import com.oracle.coherence.common.events.processing.EventProcessor;
+import com.oracle.coherence.common.runtime.process.InProcessBuilder;
+import com.oracle.coherence.common.runtime.process.JavaProcessBuilder;
+import com.oracle.coherence.common.runtime.process.OutOfProcessBuilder;
 
 import java.io.IOException;
 
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -56,12 +60,18 @@ public abstract class AbstractJavaApplicationBuilder<A extends JavaApplication, 
                      String name,
                      ApplicationConsole console) throws IOException
     {
-        // construct the process builder to start a java process
-        ProcessBuilder processBuilder = new java.lang.ProcessBuilder("java");
-
-        // we must redirect and consume output of the external process otherwise we could run out of memory
-        // or worse, do something nasty to the operating system.
-        processBuilder.redirectErrorStream(true);
+        JavaProcessBuilder processBuilder;
+        if (schema.isRunOutOfProcess())
+        {
+            processBuilder = new OutOfProcessBuilder(schema.getExecutableName(), schema.getApplicationClassName());
+        }
+        else
+        {
+            List<String> argList = schema.getArguments();
+            String[] args = argList.toArray(new String[argList.size()]);
+            processBuilder = new InProcessBuilder(name, schema.getApplicationClassName(),
+                    schema.getStartMethod(), schema.getStopMethod(), args);
+        }
 
         // add the jvm options to the operating system command
         for (String option : schema.getJVMOptions())
@@ -74,7 +84,10 @@ public abstract class AbstractJavaApplicationBuilder<A extends JavaApplication, 
 
         // we always clear down the process environment variables as by default they are inherited from
         // the current process, which is not what we want as it doesn't allow us to create a clean environment
-        processBuilder.environment().clear();
+        if (!schema.shouldCloneEnvironment())
+        {
+            processBuilder.environment().clear();
+        }
 
         // add the environment variables to the process
         for (String variableName : environmentVariables.stringPropertyNames())
@@ -87,22 +100,12 @@ public abstract class AbstractJavaApplicationBuilder<A extends JavaApplication, 
 
         // realize the system properties for the process
         Properties systemProperties = schema.getSystemPropertiesBuilder().realize();
-
-        // add the system properties to the process
-        for (String propertyName : systemProperties.stringPropertyNames())
-        {
-            String propertyValue = systemProperties.getProperty(propertyName);
-
-            processBuilder.command().add("-D" + propertyName + (propertyValue.isEmpty() ? "" : "=" + propertyValue));
-        }
-
-        // add the applicationClassName to the command for the process
-        processBuilder.command().add(schema.getApplicationClassName());
+        processBuilder.systemProperties().putAll(systemProperties);
 
         // add the arguments to the command for the process
         for (String argument : schema.getArguments())
         {
-            processBuilder.command().add(argument);
+            processBuilder.argument(argument);
         }
 
         // start the process
@@ -137,9 +140,12 @@ public abstract class AbstractJavaApplicationBuilder<A extends JavaApplication, 
      *
      * @return An A.
      */
-    protected abstract A createJavaApplication(Process process,
+    protected A createJavaApplication(Process process,
                                                String name,
                                                ApplicationConsole console,
                                                Properties environmentVariables,
-                                               Properties systemProperties);
+                                               Properties systemProperties)
+    {
+        return (A) new JavaConsoleApplication(process, name, console, environmentVariables, systemProperties);
+    }
 }

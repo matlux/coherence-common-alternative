@@ -109,6 +109,12 @@ public class PropertiesBuilder
         }
     }
 
+    /**
+     * @return the number of properties in this {@link PropertiesBuilder}
+     */
+    public int size() {
+        return m_properties.size();
+    }
 
     /**
      * Sets the specified named property to use an {@link Iterator} to provide successive property values when

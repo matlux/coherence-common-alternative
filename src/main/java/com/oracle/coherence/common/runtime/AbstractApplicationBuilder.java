@@ -60,7 +60,7 @@ public abstract class AbstractApplicationBuilder<A extends Application, S extend
      */
     public A realize(S schema) throws IOException
     {
-        return realize(schema, new UUID().toString(), new NullApplicationConsole());
+        return realize(schema, new UUID().toString());
     }
 
 
@@ -70,7 +70,7 @@ public abstract class AbstractApplicationBuilder<A extends Application, S extend
     public A realize(S schema,
                      String name) throws IOException
     {
-        return realize(schema, name, new SystemApplicationConsole());
+        return realize(schema, name, new NullApplicationConsole());
     }
 
 
@@ -83,5 +83,17 @@ public abstract class AbstractApplicationBuilder<A extends Application, S extend
         m_lifecycleEventProcessors.add(processor);
 
         return (B) this;
+    }
+
+    /**
+     * Send the specified {@link LifecycleEvent} to all of the registered {@link EventProcessor}s.
+     *
+     * @param event - the {@link LifecycleEvent} to send
+     */
+    protected void sendEvent(LifecycleEvent<A> event) {
+        for (EventProcessor<LifecycleEvent<A>> processor : m_lifecycleEventProcessors)
+        {
+            processor.process(null, event);
+        }
     }
 }

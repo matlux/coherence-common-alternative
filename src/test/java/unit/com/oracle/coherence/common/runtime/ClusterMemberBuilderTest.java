@@ -23,11 +23,8 @@
 package com.oracle.coherence.common.runtime;
 
 import com.oracle.coherence.common.network.AvailablePortIterator;
-
 import com.oracle.coherence.common.runtime.ClusterMemberSchema.JMXManagementMode;
-
 import junit.framework.Assert;
-
 import org.junit.Test;
 
 import javax.management.MBeanInfo;
@@ -64,12 +61,9 @@ public class ClusterMemberBuilderTest
 
             MBeanInfo mBeanInfo = member.getClusterMBeanInfo();
 
-            if (member instanceof AbstractApplication)
-            {
-                long pid = ((AbstractApplication) member).getPid();
+            long pid = member.getPid();
 
-                Assert.assertTrue(pid > 0);
-            }
+            Assert.assertTrue(pid > 0);
 
             Assert.assertNotNull(mBeanInfo);
 
