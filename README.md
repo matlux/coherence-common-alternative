@@ -4,9 +4,10 @@ This is a fork of Oracle Coherence's coherence-common version 2.1.2.31472 which 
 
 ## Install
 
-    Add coherence.jar into a local nexus repo with group-id=com.oracle, artifact-id=coherence, version=3.7.1
+   Add coherence.jar into a local nexus repo with group-id=com.oracle, artifact-id=coherence, version=3.7.1
+   then run the following commands:
     git clone git://github.com/matlux/coherence-common-alternative.git
-    cd coherence-common-alternative/
+    cd coherence-common-alternative
     mvn clean install
     
    Use the jar file inside the target directory as a dependency of your project.
