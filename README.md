@@ -4,9 +4,14 @@ This is a fork of Oracle Coherence's coherence-common version 2.1.2.31472 which 
 
 ## Install
 
+    Add coherence.jar into a local nexus repo with group-id=com.oracle, artifact-id=coherence, version=3.7.1
+    git clone git://github.com/matlux/coherence-common-alternative.git
+    cd coherence-common-alternative/
     mvn clean install
+    
+   Use the jar file inside the target directory as a dependency of your project.
 
-## Added feature:
+## Added feature so far:
 
    Project was "Mavenized" although the original Ivy and additional Ant scripts are still there. 
 
